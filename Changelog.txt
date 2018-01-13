@@ -1,0 +1,5 @@
+Release 0.1.0 (2018-01-12)
+==========================
+
+- Initial release of Soapy AirspyHF+ support module, based on the Soapy
+support module for the original Airspy
