@@ -127,7 +127,6 @@ SoapySDR::Kwargs SoapyAirspyHF::getHardwareInfo(void) const
     //this also gets printed in --probe
     SoapySDR::Kwargs args;
 
-    args["origin"] = "https://github.com/sevo/SoapyAirspyHF";
     args["device_id"] = std::to_string(deviceId);
 
     // maybe add Serial No. to this list?
