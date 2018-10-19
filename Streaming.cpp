@@ -43,7 +43,7 @@ std::vector<std::string> SoapyAirspyHF::getStreamFormats(const int direction, co
 
 std::string SoapyAirspyHF::getNativeStreamFormat(const int direction, const size_t channel, double &fullScale) const {
      //fullScale = 65536;
-     fullScale = 3.4E+38;
+     fullScale = 1.0;
      return SOAPY_SDR_CF32;
      //return SOAPY_SDR_CS16;
 }
