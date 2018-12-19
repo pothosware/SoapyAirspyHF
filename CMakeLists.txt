@@ -51,7 +51,7 @@ SOAPY_SDR_MODULE_UTIL(
     TARGET airspyhfSupport
     SOURCES
     	SoapyAirspyHF.hpp
-        Registation.cpp
+        Registration.cpp
         Settings.cpp
         Streaming.cpp
     LIBRARIES
