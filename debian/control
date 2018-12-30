@@ -1,0 +1,30 @@
+Source: soapyairspyhf
+Section: libs
+Priority: optional
+Maintainer: Corey Stotts <corey.stotts@gmail.com>
+Uploader: Josh Blum <josh@pothosware.com>
+Build-Depends:
+    debhelper (>= 9.0.0),
+    cmake,
+    libairspyhf-dev,
+    libsoapysdr-dev
+Standards-Version: 4.1.1
+Homepage: https://github.com/pothosware/SoapyAirspyHF/wiki
+Vcs-Git: https://github.com/pothosware/SoapyAirspyHF.git
+Vcs-Browser: https://github.com/pothosware/SoapyAirspyHF
+
+Package: soapysdr0.7-module-airspyhf
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Soapy AirspyHF - AirspyHF device support for Soapy SDR.
+ A Soapy module that supports AirspyHF devices within the Soapy API.
+
+Package: soapysdr-module-airspyhf
+Architecture: all
+Depends: soapysdr0.7-module-airspyhf, ${misc:Depends}
+Description: Soapy AirspyHF - AirspyHF device support for Soapy SDR.
+ A Soapy module that supports AirspyHF devices within the Soapy API.
+ .
+ This is an empty dependency package that pulls in the AirspyHF module
+ for the default version of libsoapysdr.
