@@ -149,11 +149,11 @@ public:
 
 //    void setGain(const int direction, const size_t channel, const double value);
 
-//    void setGain(const int direction, const size_t channel, const std::string &name, const double value);
+    void setGain(const int direction, const size_t channel, const std::string &name, const double value);
 
-//    double getGain(const int direction, const size_t channel, const std::string &name) const;
+    double getGain(const int direction, const size_t channel, const std::string &name) const;
 
-//    SoapySDR::Range getGainRange(const int direction, const size_t channel, const std::string &name) const;
+    SoapySDR::Range getGainRange(const int direction, const size_t channel, const std::string &name) const;
 
     /*******************************************************************
      * Frequency API
@@ -215,6 +215,7 @@ private:
     unsigned int bufferLength;
     size_t numBuffers;
     bool agcMode, streamActive, rfBias, bitPack;
+    uint8_t lnaGain,rfGain;
     std::atomic_bool sampleRateChanged;
     int bytesPerSample;
     //uint8_t lnaGain, mixerGain, vgaGain;

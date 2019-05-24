@@ -35,9 +35,11 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 
     numBuffers = DEFAULT_NUM_BUFFERS;
 
-    agcMode = false;
+    agcMode = true;
     rfBias = false;
     bitPack = false;
+    lnaGain=0;
+    rfGain=4;
 
     bufferedElems = 0;
     resetBuffer = false;
@@ -184,26 +186,64 @@ std::vector<std::string> SoapyAirspyHF::listGains(const int direction, const siz
     //the functions below have a "name" parameter
     std::vector<std::string> results;
 
-//    results.push_back("LNA");
-//    results.push_back("MIX");
-//    results.push_back("VGA");
+    results.push_back("LNA");
+    results.push_back("RF");
 
     return results;
 }
 
 bool SoapyAirspyHF::hasGainMode(const int direction, const size_t channel) const
 {
-    return true; //agc is always on
+    return true; // we have agc on/off setting
 }
 
 void SoapyAirspyHF::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
     //SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting AGC: %s", automatic ? "Automatic" : "Manual");
+    int rv=airspyhf_set_hf_agc(dev,automatic);
+    //fprintf(stderr,"airspyhf_set_hf_agc(%d) result: %d\n",automatic,rv);
+    /*
+    if (!automatic && agcMode) { // when turning agc off...
+        lnaGain=0;
+        rfGain=4;
+        airspyhf_set_hf_lna(dev,lnaGain);
+        airspyhf_set_hf_att(dev,rfGain);
+    }
+    */
+    agcMode=automatic;
 }
 
 bool SoapyAirspyHF::getGainMode(const int direction, const size_t channel) const
 {
-    return true; //agc is always on
+    return agcMode; //agc is finally not always on
+}
+
+SoapySDR::Range SoapyAirspyHF::getGainRange(const int direction, const size_t channel, const std::string &name) const
+{
+    if (name == "LNA") return SoapySDR::Range(0,6,6);
+    return SoapySDR::Range(0,48,6);
+}
+
+double SoapyAirspyHF::getGain(const int direction, const size_t channel, const std::string &name) const
+{
+    if (name=="LNA") return lnaGain*6.0;
+    return rfGain*6.0;
+}
+
+void SoapyAirspyHF::setGain(const int direction, const size_t channel, const std::string &name, const double value)
+{
+    if (name == "LNA") {
+        lnaGain = value>=3.0 ? 1 : 0;
+        airspyhf_set_hf_lna(dev,lnaGain);
+        return;
+    }
+    double newval=value;
+    if (newval<0.0) newval=0.0;
+    if (newval>48.0) newval=48.0;
+    rfGain=(uint8_t)(newval/6.0+0.499);
+    //fprintf(stderr,"Setting rf gain: %d\n", rfGain);
+    int rv=airspyhf_set_hf_att(dev,rfGain);
+    //fprintf(stderr,"airspyhf_set_hf_att(%d) result: %d\n",rfGain,rv);
 }
 
 /*******************************************************************
