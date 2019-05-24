@@ -235,14 +235,14 @@ SoapySDR::Range SoapyAirspyHF::getGainRange(const int direction, const size_t ch
 {
     if (!hasgains) return SoapySDR::Range(0.0, 0.0);
     if (name == "LNA") return SoapySDR::Range(0,6,6);
-    return SoapySDR::Range(0,48,6);
+    return SoapySDR::Range(-48.0,0,6);
 }
 
 double SoapyAirspyHF::getGain(const int direction, const size_t channel, const std::string &name) const
 {
     if (!hasgains) return 0.0;
     if (name=="LNA") return lnaGain*6.0;
-    return rfGain*6.0;
+    return -rfGain*6.0;
 }
 
 void SoapyAirspyHF::setGain(const int direction, const size_t channel, const std::string &name, const double value)
@@ -255,7 +255,7 @@ void SoapyAirspyHF::setGain(const int direction, const size_t channel, const std
         airspyhf_set_hf_lna(dev,lnaGain);
         return;
     }
-    double newval=value;
+    double newval = -value;
     if (newval<0.0) newval=0.0;
     if (newval>48.0) newval=48.0;
     rfGain=(uint8_t)(newval/6.0+0.499);
