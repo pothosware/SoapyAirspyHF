@@ -195,6 +195,8 @@ int SoapyAirspyHF::activateStream(
     
     resetBuffer = true;
     bufferedElems = 0;
+
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
     
     if (sampleRateChanged.load()) {
         airspyhf_set_samplerate(dev, sampleRate);
@@ -208,6 +210,8 @@ int SoapyAirspyHF::activateStream(
 int SoapyAirspyHF::deactivateStream(SoapySDR::Stream *stream, const int flags, const long long timeNs)
 {
     if (flags != 0) return SOAPY_SDR_NOT_SUPPORTED;
+
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
 
     airspyhf_stop(dev);
     
@@ -223,7 +227,9 @@ int SoapyAirspyHF::readStream(
         int &flags,
         long long &timeNs,
         const long timeoutUs)
-{    
+{
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
+
     if (!airspyhf_is_streaming(dev)) {
         return 0;
     }

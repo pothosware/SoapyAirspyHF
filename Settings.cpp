@@ -44,7 +44,7 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 
     numBuffers = DEFAULT_NUM_BUFFERS;
 
-    agcMode = true;
+    agcMode = 1;
     rfBias = false;
     bitPack = false;
     lnaGain=0;
@@ -110,6 +110,7 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
     if (airspyhf_set_hf_att(dev,rfGain)==AIRSPYHF_SUCCESS) {
         hasgains=true;
         airspyhf_set_hf_lna(dev,lnaGain);
+        airspyhf_set_hf_agc(dev,agcMode);
     }
 #endif
 
@@ -123,6 +124,7 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 
 SoapyAirspyHF::~SoapyAirspyHF(void)
 {
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
     airspyhf_close(dev);
 }
 
@@ -222,14 +224,14 @@ void SoapyAirspyHF::setGainMode(const int direction, const size_t channel, const
     if (!hasgains) return;
     
 #ifdef HASGAINS
-    airspyhf_set_hf_agc(dev,automatic);
-    agcMode=automatic;
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
+    airspyhf_set_hf_agc(dev,agcMode=automatic ? 1:0);
 #endif
 }
 
 bool SoapyAirspyHF::getGainMode(const int direction, const size_t channel) const
 {
-    return agcMode; //agc is finally not always on
+    return agcMode ? true : false; //agc is finally not always on
 }
 
 SoapySDR::Range SoapyAirspyHF::getGainRange(const int direction, const size_t channel, const std::string &name) const
@@ -243,14 +245,14 @@ double SoapyAirspyHF::getGain(const int direction, const size_t channel, const s
 {
     if (!hasgains) return 0.0;
     if (name=="LNA") return lnaGain*6.0;
-    return -rfGain*6.0;
+    return -(int)rfGain*6.0;
 }
 
 void SoapyAirspyHF::setGain(const int direction, const size_t channel, const std::string &name, const double value)
 {
     if (!hasgains) return;
-    // TODO lib version
 #ifdef HASGAINS
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
     if (name == "LNA") {
         lnaGain = value>=3.0 ? 1 : 0;
         airspyhf_set_hf_lna(dev,lnaGain);
@@ -280,6 +282,7 @@ void SoapyAirspyHF::setFrequency(
     if (name == "RF")
     {
         centerFrequency = (uint32_t) frequency;
+        std::lock_guard <std::mutex> lock(_general_state_mutex);
         resetBuffer = true;
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", centerFrequency);
         airspyhf_set_freq(dev, centerFrequency);
@@ -349,6 +352,8 @@ double SoapyAirspyHF::getSampleRate(const int direction, const size_t channel) c
 std::vector<double> SoapyAirspyHF::listSampleRates(const int direction, const size_t channel) const
 {
     std::vector<double> results;
+
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
 
     uint32_t numRates;
 	airspyhf_get_samplerates(dev, &numRates, 0);
