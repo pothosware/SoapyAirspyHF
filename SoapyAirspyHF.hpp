@@ -211,6 +211,7 @@ private:
     airspyhf_device_t *dev;
 
     //cached settings
+    bool hasgains;
     uint32_t sampleRate, centerFrequency;
     unsigned int bufferLength;
     size_t numBuffers;

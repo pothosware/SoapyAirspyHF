@@ -23,6 +23,14 @@
  * THE SOFTWARE.
  */
 
+#if AIRSPYHF_VER_MAJOR >= 1
+#if AIRSPYHF_VER_MINOR >= 1
+#if AIRSPYHF_VER_REVISION >= 2
+#define HASGAINS
+#endif
+#endif
+#endif
+
 #include "SoapyAirspyHF.hpp"
 
 SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
@@ -40,6 +48,7 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
     bitPack = false;
     lnaGain=0;
     rfGain=4;
+    hasgains=false;
 
     bufferedElems = 0;
     resetBuffer = false;
@@ -95,6 +104,13 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
     if (deviceId == -1) {
         throw std::runtime_error("device_id missing.");
     }
+
+#ifdef HASGAINS
+    if (airspyhf_set_hf_att(dev,rfGain)==AIRSPYHF_SUCCESS) {
+        hasgains=true;
+        airspyhf_set_hf_lna(dev,lnaGain);
+    }
+#endif
 
     //apply arguments to settings when they match
     for (const auto &info : this->getSettingInfo())
@@ -186,31 +202,28 @@ std::vector<std::string> SoapyAirspyHF::listGains(const int direction, const siz
     //the functions below have a "name" parameter
     std::vector<std::string> results;
 
-    results.push_back("LNA");
-    results.push_back("RF");
+    if (hasgains) {
+        results.push_back("LNA");
+        results.push_back("RF");
+    }
 
     return results;
 }
 
 bool SoapyAirspyHF::hasGainMode(const int direction, const size_t channel) const
 {
-    return true; // we have agc on/off setting
+    return true; // we have agc on/off setting or it's forced on, either way AGC is supported
 }
 
 void SoapyAirspyHF::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
     //SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting AGC: %s", automatic ? "Automatic" : "Manual");
-    int rv=airspyhf_set_hf_agc(dev,automatic);
-    //fprintf(stderr,"airspyhf_set_hf_agc(%d) result: %d\n",automatic,rv);
-    /*
-    if (!automatic && agcMode) { // when turning agc off...
-        lnaGain=0;
-        rfGain=4;
-        airspyhf_set_hf_lna(dev,lnaGain);
-        airspyhf_set_hf_att(dev,rfGain);
-    }
-    */
+    if (!hasgains) return;
+    
+#ifdef HASGAINS
+    airspyhf_set_hf_agc(dev,automatic);
     agcMode=automatic;
+#endif
 }
 
 bool SoapyAirspyHF::getGainMode(const int direction, const size_t channel) const
@@ -220,18 +233,23 @@ bool SoapyAirspyHF::getGainMode(const int direction, const size_t channel) const
 
 SoapySDR::Range SoapyAirspyHF::getGainRange(const int direction, const size_t channel, const std::string &name) const
 {
+    if (!hasgains) return SoapySDR::Range(0.0, 0.0);
     if (name == "LNA") return SoapySDR::Range(0,6,6);
     return SoapySDR::Range(0,48,6);
 }
 
 double SoapyAirspyHF::getGain(const int direction, const size_t channel, const std::string &name) const
 {
+    if (!hasgains) return 0.0;
     if (name=="LNA") return lnaGain*6.0;
     return rfGain*6.0;
 }
 
 void SoapyAirspyHF::setGain(const int direction, const size_t channel, const std::string &name, const double value)
 {
+    if (!hasgains) return;
+    // TODO lib version
+#ifdef HASGAINS
     if (name == "LNA") {
         lnaGain = value>=3.0 ? 1 : 0;
         airspyhf_set_hf_lna(dev,lnaGain);
@@ -242,8 +260,9 @@ void SoapyAirspyHF::setGain(const int direction, const size_t channel, const std
     if (newval>48.0) newval=48.0;
     rfGain=(uint8_t)(newval/6.0+0.499);
     //fprintf(stderr,"Setting rf gain: %d\n", rfGain);
-    int rv=airspyhf_set_hf_att(dev,rfGain);
+    airspyhf_set_hf_att(dev,rfGain);
     //fprintf(stderr,"airspyhf_set_hf_att(%d) result: %d\n",rfGain,rv);
+#endif
 }
 
 /*******************************************************************
