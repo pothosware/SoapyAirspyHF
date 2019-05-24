@@ -228,17 +228,19 @@ int SoapyAirspyHF::readStream(
         long long &timeNs,
         const long timeoutUs)
 {
-    std::lock_guard <std::mutex> lock(_general_state_mutex);
+    {
+        std::lock_guard <std::mutex> lock(_general_state_mutex);
 
-    if (!airspyhf_is_streaming(dev)) {
-        return 0;
-    }
-    
-    if (sampleRateChanged.load()) {
-        airspyhf_stop(dev);
-        airspyhf_set_samplerate(dev, sampleRate);
-        airspyhf_start(dev, &_rx_callback, (void *) this);
-        sampleRateChanged.store(false);
+        if (!airspyhf_is_streaming(dev)) {
+            return 0;
+        }
+        
+        if (sampleRateChanged.load()) {
+            airspyhf_stop(dev);
+            airspyhf_set_samplerate(dev, sampleRate);
+            airspyhf_start(dev, &_rx_callback, (void *) this);
+            sampleRateChanged.store(false);
+        }
     }
 
     //this is the user's buffer for channel 0
