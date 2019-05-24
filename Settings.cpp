@@ -23,6 +23,9 @@
  * THE SOFTWARE.
  */
 
+
+#include "SoapyAirspyHF.hpp"
+
 #if AIRSPYHF_VER_MAJOR >= 1
 #if AIRSPYHF_VER_MINOR >= 1
 #if AIRSPYHF_VER_REVISION >= 2
@@ -30,8 +33,6 @@
 #endif
 #endif
 #endif
-
-#include "SoapyAirspyHF.hpp"
 
 SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 {
