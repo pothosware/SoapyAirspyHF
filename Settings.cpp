@@ -262,9 +262,7 @@ void SoapyAirspyHF::setGain(const int direction, const size_t channel, const std
     if (newval<0.0) newval=0.0;
     if (newval>48.0) newval=48.0;
     rfGain=(uint8_t)(newval/6.0+0.499);
-    //fprintf(stderr,"Setting rf gain: %d\n", rfGain);
     airspyhf_set_hf_att(dev,rfGain);
-    //fprintf(stderr,"airspyhf_set_hf_att(%d) result: %d\n",rfGain,rv);
 #endif
 }
 
