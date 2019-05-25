@@ -23,7 +23,16 @@
  * THE SOFTWARE.
  */
 
+
 #include "SoapyAirspyHF.hpp"
+
+#if AIRSPYHF_VER_MAJOR >= 1
+#if AIRSPYHF_VER_MINOR >= 1
+#if AIRSPYHF_VER_REVISION >= 2
+#define HASGAINS
+#endif
+#endif
+#endif
 
 SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 {
@@ -35,9 +44,12 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 
     numBuffers = DEFAULT_NUM_BUFFERS;
 
-    agcMode = false;
+    agcMode = 1;
     rfBias = false;
     bitPack = false;
+    lnaGain=0;
+    rfGain=4;
+    hasgains=false;
 
     bufferedElems = 0;
     resetBuffer = false;
@@ -94,6 +106,14 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
         throw std::runtime_error("device_id missing.");
     }
 
+#ifdef HASGAINS
+    if (airspyhf_set_hf_att(dev,rfGain)==AIRSPYHF_SUCCESS) {
+        hasgains=true;
+        airspyhf_set_hf_lna(dev,lnaGain);
+        airspyhf_set_hf_agc(dev,agcMode);
+    }
+#endif
+
     //apply arguments to settings when they match
     for (const auto &info : this->getSettingInfo())
     {
@@ -104,6 +124,7 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 
 SoapyAirspyHF::~SoapyAirspyHF(void)
 {
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
     airspyhf_close(dev);
 }
 
@@ -184,26 +205,65 @@ std::vector<std::string> SoapyAirspyHF::listGains(const int direction, const siz
     //the functions below have a "name" parameter
     std::vector<std::string> results;
 
-//    results.push_back("LNA");
-//    results.push_back("MIX");
-//    results.push_back("VGA");
+    if (hasgains) {
+        results.push_back("LNA");
+        results.push_back("RF");
+    }
 
     return results;
 }
 
 bool SoapyAirspyHF::hasGainMode(const int direction, const size_t channel) const
 {
-    return true; //agc is always on
+    return true; // we have agc on/off setting or it's forced on, either way AGC is supported
 }
 
 void SoapyAirspyHF::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
     //SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting AGC: %s", automatic ? "Automatic" : "Manual");
+    if (!hasgains) return;
+    
+#ifdef HASGAINS
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
+    airspyhf_set_hf_agc(dev,agcMode=automatic ? 1:0);
+#endif
 }
 
 bool SoapyAirspyHF::getGainMode(const int direction, const size_t channel) const
 {
-    return true; //agc is always on
+    return agcMode ? true : false; //agc is finally not always on
+}
+
+SoapySDR::Range SoapyAirspyHF::getGainRange(const int direction, const size_t channel, const std::string &name) const
+{
+    if (!hasgains) return SoapySDR::Range(0.0, 0.0);
+    if (name == "LNA") return SoapySDR::Range(0,6,6);
+    return SoapySDR::Range(-48.0,0,6);
+}
+
+double SoapyAirspyHF::getGain(const int direction, const size_t channel, const std::string &name) const
+{
+    if (!hasgains) return 0.0;
+    if (name=="LNA") return lnaGain*6.0;
+    return -(int)rfGain*6.0;
+}
+
+void SoapyAirspyHF::setGain(const int direction, const size_t channel, const std::string &name, const double value)
+{
+    if (!hasgains) return;
+#ifdef HASGAINS
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
+    if (name == "LNA") {
+        lnaGain = value>=3.0 ? 1 : 0;
+        airspyhf_set_hf_lna(dev,lnaGain);
+        return;
+    }
+    double newval = -value;
+    if (newval<0.0) newval=0.0;
+    if (newval>48.0) newval=48.0;
+    rfGain=(uint8_t)(newval/6.0+0.499);
+    airspyhf_set_hf_att(dev,rfGain);
+#endif
 }
 
 /*******************************************************************
@@ -220,6 +280,7 @@ void SoapyAirspyHF::setFrequency(
     if (name == "RF")
     {
         centerFrequency = (uint32_t) frequency;
+        std::lock_guard <std::mutex> lock(_general_state_mutex);
         resetBuffer = true;
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", centerFrequency);
         airspyhf_set_freq(dev, centerFrequency);
@@ -289,6 +350,8 @@ double SoapyAirspyHF::getSampleRate(const int direction, const size_t channel) c
 std::vector<double> SoapyAirspyHF::listSampleRates(const int direction, const size_t channel) const
 {
     std::vector<double> results;
+
+    std::lock_guard <std::mutex> lock(_general_state_mutex);
 
     uint32_t numRates;
 	airspyhf_get_samplerates(dev, &numRates, 0);

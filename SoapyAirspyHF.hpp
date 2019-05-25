@@ -149,11 +149,11 @@ public:
 
 //    void setGain(const int direction, const size_t channel, const double value);
 
-//    void setGain(const int direction, const size_t channel, const std::string &name, const double value);
+    void setGain(const int direction, const size_t channel, const std::string &name, const double value);
 
-//    double getGain(const int direction, const size_t channel, const std::string &name) const;
+    double getGain(const int direction, const size_t channel, const std::string &name) const;
 
-//    SoapySDR::Range getGainRange(const int direction, const size_t channel, const std::string &name) const;
+    SoapySDR::Range getGainRange(const int direction, const size_t channel, const std::string &name) const;
 
     /*******************************************************************
      * Frequency API
@@ -211,10 +211,12 @@ private:
     airspyhf_device_t *dev;
 
     //cached settings
+    bool hasgains;
     uint32_t sampleRate, centerFrequency;
     unsigned int bufferLength;
     size_t numBuffers;
-    bool agcMode, streamActive, rfBias, bitPack;
+    bool streamActive, rfBias, bitPack;
+    uint8_t lnaGain,rfGain, agcMode;
     std::atomic_bool sampleRateChanged;
     int bytesPerSample;
     //uint8_t lnaGain, mixerGain, vgaGain;
@@ -222,6 +224,8 @@ private:
 public:
     //async api usage
     int rx_callback(airspyhf_transfer_t *t);
+
+    mutable std::mutex _general_state_mutex;
 
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;
