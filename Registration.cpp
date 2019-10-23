@@ -65,12 +65,12 @@ static std::vector<SoapySDR::Kwargs> findAirspyHF(const SoapySDR::Kwargs &args)
         soapyInfo["serial"] = serialstr.str();
         devId++;
                 
-        // if (args.count("serial") != 0) {
-        //     if (args.at("serial") != soapyInfo.at("serial")) {
-        //         continue;
-        //     }
-        //     SoapySDR_logf(SOAPY_SDR_DEBUG, "Found device by serial %s", soapyInfo.at("serial").c_str());
-        // } else
+        if (args.count("serial") != 0) {
+            if (args.at("serial") != soapyInfo.at("serial")) {
+                continue;
+            }
+            SoapySDR_logf(SOAPY_SDR_DEBUG, "Found device by serial %s", soapyInfo.at("serial").c_str());
+        } else
         if (args.count("device_id") != 0) {
             if (args.at("device_id") != soapyInfo.at("device_id")) {
                 continue;

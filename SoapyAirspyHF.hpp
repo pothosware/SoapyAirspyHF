@@ -208,6 +208,7 @@ private:
 
     //device handle
     int deviceId;
+    uint64_t serial;
     airspyhf_device_t *dev;
 
     //cached settings
