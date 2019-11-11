@@ -36,10 +36,6 @@
 
 SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 {
-    deviceId = -1;
-    serial = 0;
-
-    //sampleRate = 3000000;
     sampleRate = 768000;
     centerFrequency = 0;
 
@@ -59,7 +55,6 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
     sampleRateChanged.store(false);
     
     dev = nullptr;
-    bool serial_specified = false;
     std::stringstream serialstr;
     serialstr.str("");
 
@@ -71,62 +66,19 @@ SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
             throw std::runtime_error("serial is not a hex number");
         } catch (const std::out_of_range &) {
             throw std::runtime_error("serial value of out range");
+        }
+        serialstr << std::hex << serial;
+        if (airspyhf_open_sn(&dev, serial) != AIRSPYHF_SUCCESS) {
+            throw std::runtime_error("Unable to open AirspyHF device with S/N " + serialstr.str());
+        }
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Found AirspyHF+ device: serial = %16Lx", serial);
     }
-        serial_specified = true;
-    }
-    else if (args.count("device_id") != 0)
+    else
     {
-        try {
-            deviceId = std::stoi(args.at("device_id"));
-        } catch (const std::invalid_argument &) {
-            throw std::runtime_error("device_id is not a number");
-        } catch (const std::out_of_range &) {
-            throw std::runtime_error("device_id of out range");
+        if (airspyhf_open(&dev) != AIRSPYHF_SUCCESS) {
+            throw std::runtime_error("Unable to open AirspyHF device");
         }
     }
-    uint64_t serials[MAX_DEVICES];
-    int numDevices = airspyhf_list_devices(serials, MAX_DEVICES);
-    if (numDevices == AIRSPYHF_ERROR) {
-        throw std::runtime_error("Failed to retrieve list of AirspyHF devices");
-    }
-    SoapySDR_logf(SOAPY_SDR_DEBUG, "%d AirSpyHF devices found.", numDevices);
-    if (numDevices == 0) {
-        throw std::runtime_error("No AirspyHF devices found");
-    }
-
-    if (serial_specified) {     // search by serial
-        serialstr << std::hex << serial;
-        for (int i = 0; i < numDevices; i++)
-        {
-            if (serials[i] == serial)
-            {
-                deviceId = i;
-                break;
-            }
-        }
-        if (deviceId < 0)
-        {
-            throw std::runtime_error("AirspyHF device with S/N " + serialstr.str() + " not found");
-        }
-    }
-    else {                    // search by device_id
-        if (deviceId < 0)
-        {
-            deviceId = 0;       // default if no device_id specified
-        }
-        else if (deviceId >= numDevices)
-        {
-            throw std::runtime_error("Airspy device_id out of range [0 .. " + std::to_string(numDevices-1) + "].");
-        }
-        serial = serials[deviceId];
-        serialstr << std::hex << serial;
-    }
-    if (airspyhf_open_sn(&dev, serial) != AIRSPYHF_SUCCESS) {
-        throw std::runtime_error("Unable to open AirspyHF device " + std::to_string(deviceId) +
-            "with S/N " + serialstr.str());
-    }
-
-    SoapySDR_logf(SOAPY_SDR_DEBUG, "Found AirspyHF+ device: device_id = %d, serial = %16Lx", deviceId, serial);
 
 #ifdef HASGAINS
     if (airspyhf_set_hf_att(dev,rfGain)==AIRSPYHF_SUCCESS) {
@@ -169,8 +121,6 @@ SoapySDR::Kwargs SoapyAirspyHF::getHardwareInfo(void) const
     //key/value pairs for any useful information
     //this also gets printed in --probe
     SoapySDR::Kwargs args;
-
-    args["device_id"] = std::to_string(deviceId);
 
     std::stringstream serialstr;
     serialstr.str("");
