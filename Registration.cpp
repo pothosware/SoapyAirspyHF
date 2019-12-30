@@ -42,11 +42,11 @@ static std::vector<SoapySDR::Kwargs> findAirspyHF(const SoapySDR::Kwargs &args)
     uint64_t serials[MAX_DEVICES];
     int count = airspyhf_list_devices(serials, MAX_DEVICES);
     if (count == AIRSPYHF_ERROR) {
-	    SoapySDR_logf(SOAPY_SDR_ERROR, "libairspyhf error listing devices");
+        SoapySDR_logf(SOAPY_SDR_ERROR, "libairspyhf error listing devices");
+        return results;
     }
-    else {
-    	SoapySDR_logf(SOAPY_SDR_DEBUG, "%d AirSpy boards found.", count);
-    }
+
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "%d AirSpy boards found.", count);
     
     for (int i = 0; i < count; i++) {
         std::stringstream serialstr;

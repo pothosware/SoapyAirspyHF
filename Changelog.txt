@@ -1,6 +1,7 @@
 Release 0.1.1 (pending)
 ==========================
 
+- Fix return code handling for airspyhf_list_devices()
 - Manual gain settings in firmware R1.3 and airspyhf 1.1.2 or later
 
 Release 0.1.0 (2018-01-12)
