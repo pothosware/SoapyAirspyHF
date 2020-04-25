@@ -26,26 +26,27 @@
 #include "SoapyAirspyHF.hpp"
 #include <SoapySDR/Logger.hpp>
 #include <SoapySDR/Formats.hpp>
+#include <SoapySDR/ConverterRegistry.hpp>
 #include <algorithm> //min
 #include <climits> //SHRT_MAX
 #include <cstring> // memcpy
 
+#define SOAPY_NATIVE_FORMAT SOAPY_SDR_CF32
 
 std::vector<std::string> SoapyAirspyHF::getStreamFormats(const int direction, const size_t channel) const {
     std::vector<std::string> formats;
 
-    // formats.push_back("CS8");
-    //formats.push_back(SOAPY_SDR_CS16);
-    formats.push_back(SOAPY_SDR_CF32);
+    for (const auto &target : SoapySDR::ConverterRegistry::listTargetFormats(SOAPY_NATIVE_FORMAT))
+    {
+        formats.push_back(target);
+    }
 
     return formats;
 }
 
 std::string SoapyAirspyHF::getNativeStreamFormat(const int direction, const size_t channel, double &fullScale) const {
-     //fullScale = 65536;
      fullScale = 1.0;
-     return SOAPY_SDR_CF32;
-     //return SOAPY_SDR_CS16;
+     return SOAPY_NATIVE_FORMAT;
 }
 
 SoapySDR::ArgInfoList SoapyAirspyHF::getStreamArgsInfo(const int direction, const size_t channel) const {
@@ -135,25 +136,18 @@ SoapySDR::Stream *SoapyAirspyHF::setupStream(
         throw std::runtime_error("setupStream invalid channel selection");
     }
 
-    //airspy_sample_type asFormat = AIRSPY_SAMPLE_INT16_IQ;
+    std::vector<std::string> sources = SoapySDR::ConverterRegistry::listSourceFormats(format);
 
-    //check the format
-    if (format == SOAPY_SDR_CF32) {
-        SoapySDR_log(SOAPY_SDR_INFO, "Using format CF32.");
-        //asFormat = AIRSPY_SAMPLE_FLOAT32_IQ;
-    //} else if (format == SOAPY_SDR_CS16) {
-       // SoapySDR_log(SOAPY_SDR_INFO, "Using format CS16.");
-       // asFormat = AIRSPY_SAMPLE_INT16_IQ;
-    } else {
+    if (std::find(sources.begin(), sources.end(), SOAPY_NATIVE_FORMAT) == sources.end()) {
         throw std::runtime_error(
-                "setupStream invalid format '" + format
-                        + "' -- Only CF32 is supported by SoapyAirspyHF module.");
+                "setupStream invalid format '" + format + "'.");
     }
 
-    //airspy_set_sample_type(dev, asFormat);
+    converterFunction = SoapySDR::ConverterRegistry::getFunction(SOAPY_NATIVE_FORMAT, format, SoapySDR::ConverterRegistry::GENERIC);
+
     sampleRateChanged.store(true);
 
-    bytesPerSample = SoapySDR::formatToSize(format);
+    bytesPerSample = SoapySDR::formatToSize(SOAPY_NATIVE_FORMAT);
 
     //We get this many complex samples over the bus.
     //Its the same for both complex float and int16.
@@ -257,8 +251,8 @@ int SoapyAirspyHF::readStream(
     size_t returnedElems = std::min(bufferedElems, numElems);
 
     //convert into user's buff0
-    std::memcpy(buff0, _currentBuff, returnedElems * bytesPerSample);
-    
+    converterFunction(_currentBuff, buff0, returnedElems, 1);
+
     //bump variables for next call into readStream
     bufferedElems -= returnedElems;
     _currentBuff += returnedElems * bytesPerSample;

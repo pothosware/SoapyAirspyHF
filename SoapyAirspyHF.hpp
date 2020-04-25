@@ -27,6 +27,7 @@
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Logger.h>
 #include <SoapySDR/Types.h>
+#include <SoapySDR/ConverterRegistry.hpp>
 #include <stdexcept>
 #include <thread>
 #include <mutex>
@@ -220,6 +221,7 @@ private:
     std::atomic_bool sampleRateChanged;
     int bytesPerSample;
     //uint8_t lnaGain, mixerGain, vgaGain;
+    SoapySDR::ConverterRegistry::ConverterFunction converterFunction;
     
 public:
     //async api usage
