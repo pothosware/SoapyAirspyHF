@@ -225,10 +225,6 @@ int SoapyAirspyHF::readStream(
     {
         std::lock_guard <std::mutex> lock(_general_state_mutex);
 
-        if (!airspyhf_is_streaming(dev)) {
-            return 0;
-        }
-        
         if (sampleRateChanged.load()) {
             airspyhf_stop(dev);
             airspyhf_set_samplerate(dev, sampleRate);
