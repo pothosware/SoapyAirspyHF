@@ -1,3 +1,9 @@
+soapyairspyhf (0.2.0-1) unstable; urgency=low
+
+  * Release 0.2.0 (2021-06-02)
+
+ -- Josh Blum <josh@pothosware.com>  Wed, 02 Jun 2021 08:55:01 -0000
+
 soapyairspyhf (0.1.0-1) unstable; urgency=low
 
   * Release 0.1.0 (2018-01-12)
