@@ -289,6 +289,7 @@ SoapySDR::RangeList SoapyAirspyHF::getFrequencyRange(
     {
         results.push_back(SoapySDR::Range(9000,31000000));
 	results.push_back(SoapySDR::Range(60000000,260000000));
+	results.push_back(SoapySDR::Range(1200000000,1670000000));
     }
     return results;
 }
