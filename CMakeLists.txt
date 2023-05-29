@@ -3,6 +3,7 @@
 ###################################################
 
 cmake_minimum_required(VERSION 2.8.7)
+include(CheckFunctionExists)
 
 project(SoapyAirspyHF CXX)
 
@@ -57,6 +58,14 @@ SOAPY_SDR_MODULE_UTIL(
     LIBRARIES
     ${AIRSPYHF_LIBS}
 )
+
+set(CMAKE_REQUIRED_INCLUDES libairspy/airspyhf.h)
+set(CMAKE_REQUIRED_LIBRARIES -lairspyhf)
+check_function_exists(airspyhf_set_hf_att HAVE_GAIN_API)
+if (${HAVE_GAIN_API})
+  message(STATUS "Enabling gain control.")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHASGAINS=1")
+endif()
 
 ########################################################################
 # uninstall target

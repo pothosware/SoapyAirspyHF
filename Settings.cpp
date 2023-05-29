@@ -26,14 +26,6 @@
 
 #include "SoapyAirspyHF.hpp"
 
-#if AIRSPYHF_VER_MAJOR >= 1
-#if AIRSPYHF_VER_MINOR >= 1
-#if AIRSPYHF_VER_REVISION >= 2
-#define HASGAINS
-#endif
-#endif
-#endif
-
 SoapyAirspyHF::SoapyAirspyHF(const SoapySDR::Kwargs &args)
 {
     sampleRate = 768000;
